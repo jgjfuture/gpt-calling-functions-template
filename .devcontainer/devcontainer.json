@@ -9,7 +9,9 @@
 			"extensions": [
 				"GitHub.copilot",
 				"donjayamanne.githistory",
-				"piotrpalarz.vscode-gitignore-generator"
+				"piotrpalarz.vscode-gitignore-generator",
+				"esbenp.prettier-vscode",
+				"GitHub.copilot-chat"
 			]
 		}
 	},
