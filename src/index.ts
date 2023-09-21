@@ -5,14 +5,19 @@ const client = new OpenAI();
 type GPTCallableFunction = {
     name: string;
     metadata: OpenAI.Chat.Completions.ChatCompletionCreateParams.Function;
-    callable: (params: unknown) => Promise<string>;
+    callable: (params: any) => Promise<string>;
 };
 
 async function runConversation(
     client: OpenAI,
     conversation: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
     functions: GPTCallableFunction[],
-): Promise<OpenAI.Chat.ChatCompletion> {
+    max_calls = 10,
+    responses: OpenAI.Chat.ChatCompletion[] = [],
+): Promise<OpenAI.Chat.ChatCompletion[]> {
+    if (max_calls <= 0) {
+        return responses;
+    }
     const response = await client.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: conversation,
@@ -20,6 +25,7 @@ async function runConversation(
         function_call: 'auto',
     });
     const responseMessage = response.choices[0].message;
+    responses.push(response);
     if (responseMessage.function_call) {
         conversation.push(responseMessage);
         const functionName = responseMessage.function_call.name;
@@ -32,14 +38,14 @@ async function runConversation(
             console.log(callArgs);
             try {
                 const functionResponse = await callable(callArgs);
-                console.log(functionResponse);
+                console.debug(functionResponse);
                 conversation.push({
                     role: 'function',
                     name: functionName,
                     content: functionResponse,
                 });
             } catch (e) {
-                console.log(e);
+                console.error(e);
                 conversation.push({
                     role: 'function',
                     name: functionName,
@@ -53,9 +59,15 @@ async function runConversation(
                 content: 'Error: Function not found',
             });
         }
-        return await runConversation(client, conversation, functions);
+        return await runConversation(
+            client,
+            conversation,
+            functions,
+            max_calls - 1,
+            responses,
+        );
     } else {
-        return response;
+        return responses;
     }
 }
 
@@ -64,14 +76,38 @@ const r = await runConversation(
     [
         {
             role: 'system',
-            content: '',
+            content: 'あなたはアナウンサーです。',
         },
         {
             role: 'user',
-            content: '',
+            content: '渡された情報をもとに、報道を行ってください。',
         },
     ],
-    [],
+    [
+        {
+            name: 'get_news',
+            metadata: {
+                name: 'get_news',
+                description: 'Get news from the news API',
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        seed: {
+                            type: 'number',
+                            description: 'random seed. from 0 to 100',
+                        },
+                    },
+                    required: ['seed'],
+                },
+            },
+            callable: async (params: { seed: number }) => {
+                // dummy implementation
+                if (params.seed < 50) return '明日の天気は晴れです。';
+                return '明日の天気は雨です。';
+            },
+        },
+    ],
+    3,
 );
-console.log(r);
-console.log(r.choices[0].message);
+
+console.log(r.map((sr) => sr.choices[0].message));
