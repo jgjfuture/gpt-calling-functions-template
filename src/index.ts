@@ -35,16 +35,23 @@ async function runConversation(
             const callArgs = JSON.parse(
                 responseMessage.function_call.arguments,
             );
-            console.log(callArgs);
+            console.debug(`GPT requested call: ${functionName}(%o)`, callArgs);
             try {
                 const functionResponse = await callable(callArgs);
-                console.debug(functionResponse);
+                console.debug(
+                    `Actual function returns: ${functionName}(%o) => ${functionResponse}`,
+                    callArgs,
+                );
                 conversation.push({
                     role: 'function',
                     name: functionName,
                     content: functionResponse,
                 });
             } catch (e) {
+                console.error(
+                    `Actual function throws: ${functionName}(%o) => ${e}`,
+                    callArgs,
+                );
                 console.error(e);
                 conversation.push({
                     role: 'function',
