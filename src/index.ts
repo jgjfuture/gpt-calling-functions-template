@@ -12,6 +12,7 @@ async function runConversation(
     client: OpenAI,
     conversation: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
     functions: GPTCallableFunction[],
+    model: string = 'gpt-3.5-turbo',
     max_calls = 10,
     responses: OpenAI.Chat.ChatCompletion[] = [],
 ): Promise<OpenAI.Chat.ChatCompletion[]> {
@@ -19,7 +20,7 @@ async function runConversation(
         return responses;
     }
     const response = await client.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: model,
         messages: conversation,
         functions: functions.map((f) => f.metadata),
         function_call: 'auto',
@@ -70,6 +71,7 @@ async function runConversation(
             client,
             conversation,
             functions,
+            model,
             max_calls - 1,
             responses,
         );
@@ -114,7 +116,6 @@ const r = await runConversation(
             },
         },
     ],
-    3,
 );
 
 console.log(r.map((sr) => sr.choices[0].message));
